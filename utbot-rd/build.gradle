@@ -164,30 +164,30 @@ if (includeRiderInBuild.toBoolean()) {
     }
 }
 
-task generateInstrumentedProcessModels(type: RdGenTask) {
-    def currentProjectDir = project.projectDir
-    def instrumentationProjectDir = project.rootProject.childProjects["utbot-instrumentation"].projectDir
-    def generatedOutputDir = new File(instrumentationProjectDir, "src/main/kotlin/org/utbot/instrumentation/rd/generated")
-    def hashDir = generatedOutputDir
-    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
-    def rdParams = extensions.getByName("params") as RdGenExtension
-
-    group = "rdgen"
-    rdParams.verbose = true
-    rdParams.sources(sourcesDir)
-    rdParams.hashFolder = hashDir.canonicalPath
-    // where to search roots
-    rdParams.packages = "org.utbot.rd.models"
-
-    rdParams.generator {
-        language = "kotlin"
-        transform = "symmetric"
-        root = "org.utbot.rd.models.InstrumentedProcessRoot"
-
-        directory = generatedOutputDir.canonicalPath
-        namespace = "org.utbot.instrumentation.process.generated"
-    }
-}
+//task generateInstrumentedProcessModels(type: RdGenTask) {
+//    def currentProjectDir = project.projectDir
+//    def instrumentationProjectDir = project.rootProject.childProjects["utbot-instrumentation"].projectDir
+//    def generatedOutputDir = new File(instrumentationProjectDir, "src/main/kotlin/org/utbot/instrumentation/rd/generated")
+//    def hashDir = generatedOutputDir
+//    def sourcesDir = new File(currentProjectDir, "src/main/rdgen/org/utbot/rd/models")
+//    def rdParams = extensions.getByName("params") as RdGenExtension
+//
+//    group = "rdgen"
+//    rdParams.verbose = true
+//    rdParams.sources(sourcesDir)
+//    rdParams.hashFolder = hashDir.canonicalPath
+//    // where to search roots
+//    rdParams.packages = "org.utbot.rd.models"
+//
+//    rdParams.generator {
+//        language = "kotlin"
+//        transform = "symmetric"
+//        root = "org.utbot.rd.models.InstrumentedProcessRoot"
+//
+//        directory = generatedOutputDir.canonicalPath
+//        namespace = "org.utbot.instrumentation.process.generated"
+//    }
+//}
 
 task generateEngineProcessModels(type: RdGenTask) {
     def currentProjectDir = project.projectDir

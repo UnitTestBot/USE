@@ -8,7 +8,7 @@
 
 package org.utbot.framework.plugin.api
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.FileUtil
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard

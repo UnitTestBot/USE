@@ -29,7 +29,7 @@ import com.microsoft.z3.Status.SATISFIABLE
 import com.microsoft.z3.Status.UNSATISFIABLE
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.emptyAssumption
 import soot.ByteType
@@ -38,7 +38,7 @@ import soot.IntType
 import soot.ShortType
 import soot.Type
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 
 fun mkByte(value: Byte): UtBvExpression = UtBvLiteral(value, UtByteSort)

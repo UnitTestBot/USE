@@ -66,7 +66,7 @@ private fun initSoot(buildDirs: List<Path>, classpath: String?, jdkInfo: JdkInfo
     G.reset()
     val options = Options.v()
 
-    G.v().initJdk(G.JreInfo(jdkInfo.path.toString(), jdkInfo.version)) // init Soot with the right jdk
+ //   G.v().initJdk(G.JreInfo(jdkInfo.path.toString(), jdkInfo.version)) // init Soot with the right jdk
 
     options.apply {
         set_prepend_classpath(true)

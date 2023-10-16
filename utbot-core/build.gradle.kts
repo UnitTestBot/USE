@@ -10,4 +10,5 @@ dependencies {
     implementation(group = "net.java.dev.jna", name = "jna-platform", version = "5.5.0")
 
     testImplementation(group = "junit", name = "junit", version = junit4Version)
+    testImplementation(project(":utbot-framework-api"))
 }

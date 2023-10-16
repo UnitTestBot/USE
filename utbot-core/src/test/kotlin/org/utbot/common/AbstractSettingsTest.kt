@@ -2,9 +2,10 @@ package org.utbot.common
 
 import java.io.InputStream
 import mu.KLogger
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+
 
 
 internal class AbstractSettingsTest {
@@ -41,7 +42,7 @@ internal class AbstractSettingsTest {
         return TestSettings()
     }
 
-    internal class TestSettings : AbstractSettings(KotlinLogging.logger {}, "") {
+    internal class TestSettings : AbstractSettings( UtLogging.logger {}, "") {
         val testBoolean: Boolean by getBooleanProperty(true)
         val testInt: Int by getIntProperty(3)
         val testIntRange: Int by getIntProperty(3, 1, 5)

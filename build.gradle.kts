@@ -11,7 +11,7 @@ val collectionsVersion: String by project
 val junit5Version: String by project
 val dateBasedVersion: String = SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis()) // CI proceeds the same way
 
-version = semVer ?: "$dateBasedVersion-SNAPSHOT"
+version = semVer ?: "$dateBasedVersion"
 
 plugins {
     `java-library`
@@ -181,21 +181,14 @@ dependencies {
 
 configure(
     listOf(
-        project(":utbot-api"),
-        project(":utbot-core"),
-        project(":utbot-framework"),
-        project(":utbot-framework-api"),
-        project(":utbot-java-fuzzing"),
-        project(":utbot-instrumentation"),
-        project(":utbot-rd"),
-        project(":utbot-summary")
+        project(":utbot-light")
     )
 ) {
     publishing {
         repositories {
             maven {
                 name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/UnitTestBot/UTBotJava")
+                url = uri("https://maven.pkg.github.com/UnitTestBot/USE")
                 credentials {
                     username = System.getenv("GITHUB_ACTOR")
                     password = System.getenv("GITHUB_TOKEN")

@@ -1,12 +1,12 @@
 package org.utbot.framework.plugin.api.utils
 
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+//import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.MockFramework
 import java.io.File
 import java.util.jar.JarFile
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 /**
  * Checks that dependency paths contains some frameworks

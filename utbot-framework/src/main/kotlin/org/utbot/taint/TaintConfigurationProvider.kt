@@ -6,7 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.utBotTempDirectory
 import org.utbot.taint.model.TaintConfiguration
@@ -19,7 +19,7 @@ const val TAINT_CONFIGURATION_CACHED_DEFAULT_NAME = "taint-config-cached"
 
 val lockResourcesCachedFile = Object()
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 /**
  * Provide the [TaintConfiguration].

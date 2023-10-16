@@ -9,18 +9,16 @@ configurations {
 
 dependencies {
 
-    api project(':utbot-java-fuzzing')
-    api project(':utbot-instrumentation')
-    api project(':utbot-summary')
+//    api project(':utbot-java-fuzzing')
+//    api project(':utbot-instrumentation')
+//    api project(':utbot-summary')
     api project(':utbot-framework-api')
     api project(':utbot-rd')
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: rdVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: rdVersion
 
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
-        exclude group:'com.google.guava', module:'guava'
-    }
+    implementation("org.soot-oss:soot:${sootVersion}")
     implementation group: 'com.google.guava', name: 'guava', version: guavaVersion
     implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryoVersion
     // this is necessary for serialization of some collections
@@ -45,14 +43,14 @@ dependencies {
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-core', version: ksmtVersion
     implementation group: 'com.github.UnitTestBot.ksmt', name: 'ksmt-z3', version: ksmtVersion
 
-    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+//    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 
-    implementation project(':utbot-spring-commons-api')
-    implementation project(':utbot-spring-analyzer')
+//    implementation project(':utbot-spring-commons-api')
+//    implementation project(':utbot-spring-analyzer')
 
-    if (projectType == springEdition || projectType==ultimateEdition) {
-        fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
-    }
+//    if (projectType == springEdition || projectType==ultimateEdition) {
+//        fetchSpringAnalyzerJar project(path: ':utbot-spring-analyzer', configuration: 'springAnalyzerJar')
+//    }
 }
 
 processResources {

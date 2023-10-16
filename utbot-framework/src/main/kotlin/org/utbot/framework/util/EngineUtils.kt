@@ -1,6 +1,6 @@
 package org.utbot.framework.util
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.logException
 import org.utbot.framework.plugin.api.util.constructor.ValueConstructor
 import org.utbot.framework.plugin.api.ExecutableId
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import soot.SootMethod
 
 
-private val logger = KotlinLogging.logger {  }
+private val logger =  UtLogging.logger {  }
 
 /**
  * Gets method or constructor id of SootMethod.

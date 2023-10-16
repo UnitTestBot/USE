@@ -1,10 +1,10 @@
 package org.utbot.framework
 
 import java.io.File
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.AbstractSettings
 import java.lang.reflect.Executable
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 /**
  * Path to the utbot home folder.
@@ -255,7 +255,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     /**
      * Instrument all classes before start
      */
-    var warmupConcreteExecution by getBooleanProperty(false)
+//    var warmupConcreteExecution by getBooleanProperty(false)
 
     /**
      * Ignore string literals during the code analysis to make possible to analyze antlr.

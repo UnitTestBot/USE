@@ -2,7 +2,7 @@ package org.utbot.framework.process
 
 import com.jetbrains.rd.framework.IProtocol
 import kotlinx.coroutines.runBlocking
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.analytics.AnalyticsConfigureUtil
 import org.utbot.common.*
 import org.utbot.framework.codegen.domain.ForceStaticMocking
@@ -27,19 +27,11 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.process.generated.*
-import org.utbot.framework.process.generated.BeanAdditionalData
-import org.utbot.framework.process.generated.BeanDefinitionData
 import org.utbot.framework.process.kryo.KryoHelper
-import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.rd.IdleWatchdog
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.RdSettingsContainerFactory
 import org.utbot.rd.generated.settingsModel
-import org.utbot.rd.terminateOnException
-import org.utbot.sarif.RdSourceFindingStrategyFacade
-import org.utbot.sarif.SarifReport
-import org.utbot.spring.process.SpringAnalyzerProcess
-import org.utbot.summary.summarizeAll
 import org.utbot.taint.TaintConfigurationProviderUserRules
 import java.io.File
 import java.net.URLClassLoader
@@ -48,7 +40,7 @@ import kotlin.reflect.jvm.kotlinFunction
 import kotlin.time.Duration.Companion.seconds
 
 private val messageFromMainTimeoutMillis = 120.seconds
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 @Suppress("unused")
 object EngineProcessMain
@@ -78,30 +70,30 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             File(it).toURI().toURL()
         }.toTypedArray())))
     }
-    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
-        try {
-            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
-            val result = springAnalyzerProcess.terminateOnException { _ ->
-                springAnalyzerProcess.getBeanDefinitions(
-                    kryoHelper.readObject(params.springSettings)
-                )
-            }
-            springAnalyzerProcess.terminate()
-            val beanDefinitions = result.beanDefinitions
-                .map { data ->
-                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
-                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
-                }
-                .toTypedArray()
-            SpringAnalyzerResult(beanDefinitions)
-        } catch (e: Exception) {
-            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
-            SpringAnalyzerResult(emptyArray())
-        }
-    }
+//    watchdog.measureTimeForActiveCall(getSpringBeanDefinitions, "Getting Spring bean definitions") { params ->
+//        try {
+//            val springAnalyzerProcess = SpringAnalyzerProcess.createBlocking(params.classpath.toList())
+//            val result = springAnalyzerProcess.terminateOnException { _ ->
+//                springAnalyzerProcess.getBeanDefinitions(
+//                    kryoHelper.readObject(params.springSettings)
+//                )
+//            }
+//            springAnalyzerProcess.terminate()
+//            val beanDefinitions = result.beanDefinitions
+//                .map { data ->
+//                    val additionalData = data.additionalData?.let { BeanAdditionalData(it.factoryMethodName, it.parameterTypes, it.configClassFqn) }
+//                    BeanDefinitionData(data.beanName, data.beanTypeFqn, additionalData)
+//                }
+//                .toTypedArray()
+//            SpringAnalyzerResult(beanDefinitions)
+//        } catch (e: Exception) {
+//            logger.error(e) { "Spring Analyzer crashed, resorting to using empty bean list" }
+//            SpringAnalyzerResult(emptyArray())
+//        }
+//    }
     watchdog.measureTimeForActiveCall(createTestGenerator, "Creating Test Generator") { params ->
         AnalyticsConfigureUtil.configureML()
-        Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
+//        Instrumenter.adapter = RdInstrumenter(realProtocol.rdInstrumenterAdapter)
         val applicationContext: ApplicationContext = kryoHelper.readObject(params.applicationContext)
 
         testGenerator = TestCaseGenerator(
@@ -132,21 +124,21 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
                     TaintConfigurationProviderUserRules(taintConfigPath)
                 }
 
-                val result = testGenerator.generate(
-                    methods,
-                    MockStrategyApi.valueOf(params.mockStrategy),
-                    kryoHelper.readObject(params.chosenClassesToMockAlways),
-                    params.timeout,
-                    userTaintConfigurationProvider,
-                    generate = generateFlow,
-                )
-                    .summarizeAll(Paths.get(params.searchDirectory), null)
-                    .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
+//                val result = testGenerator.generate(
+//                    methods,
+//                    MockStrategyApi.valueOf(params.mockStrategy),
+//                    kryoHelper.readObject(params.chosenClassesToMockAlways),
+//                    params.timeout,
+//                    userTaintConfigurationProvider,
+//                    generate = generateFlow,
+//                )
+//                    .summarizeAll(Paths.get(params.searchDirectory), null)
+//                    .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
 
                 val id = ++idCounter
 
-                testSets[id] = result
-                GenerateResult(result.size, id)
+//                testSets[id] = result
+                GenerateResult(/*result.size*/0, id)
             }
     }
     watchdog.measureTimeForActiveCall(render, "Rendering tests") { params ->
@@ -178,17 +170,17 @@ private fun EngineProcessModel.setup(kryoHelper: KryoHelper, watchdog: IdleWatch
             .mapNotNull { method -> byMethodDescription[method.methodDescription()]?.let { params -> method.executableId to params } }
             .toMap()))
     }
-    watchdog.measureTimeForActiveCall(writeSarifReport, "Writing Sarif report") { params ->
-        val reportFilePath = Paths.get(params.reportFilePath)
-        reportFilePath.parent.toFile().mkdirs()
-        val sarifReport = SarifReport(
-            testSets[params.testSetsId]!!,
-            params.generatedTestsCode,
-            RdSourceFindingStrategyFacade(params.testSetsId, realProtocol.rdSourceFindingStrategy)
-        ).createReport().toJson()
-        reportFilePath.toFile().writeText(sarifReport)
-        sarifReport
-    }
+//    watchdog.measureTimeForActiveCall(writeSarifReport, "Writing Sarif report") { params ->
+//        val reportFilePath = Paths.get(params.reportFilePath)
+//        reportFilePath.parent.toFile().mkdirs()
+//        val sarifReport = SarifReport(
+//            testSets[params.testSetsId]!!,
+//            params.generatedTestsCode,
+//            RdSourceFindingStrategyFacade(params.testSetsId, realProtocol.rdSourceFindingStrategy)
+//        ).createReport().toJson()
+//        reportFilePath.toFile().writeText(sarifReport)
+//        sarifReport
+//    }
     watchdog.measureTimeForActiveCall(generateTestReport, "Generating test report") { params ->
         val eventLogMessage = params.eventLogMessage
         val testPackageName: String? = params.testPackageName

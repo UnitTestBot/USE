@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.tree
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.isStatic
 import org.utbot.common.workaround
@@ -154,7 +154,6 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
-import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import java.security.AccessControlException
@@ -166,7 +165,7 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     CgStatementConstructor by getStatementConstructorBy(context) {
 
     companion object {
-        private val logger = KotlinLogging.logger {}
+        private val logger =  UtLogging.logger {}
     }
 
     protected val nameGenerator = getNameGeneratorBy(context)
@@ -195,7 +194,6 @@ open class CgMethodConstructor(val context: CgContext) : CgContextOwner by conte
     protected fun setupInstrumentation() {
         val instrumentation = when (val execution = currentExecution) {
             is UtSymbolicExecution -> execution.instrumentation
-            is UtFuzzedExecution -> execution.instrumentation
             else -> return
         }
         if (instrumentation.isEmpty()) return

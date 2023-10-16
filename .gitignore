@@ -8,6 +8,5 @@ target/
 .gradle/
 *.log
 *.rdgen
-utbot-intellij/src/main/resources/settings.properties
 __pycache__
 .dmypy.json

@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.generator
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.framework.codegen.domain.context.CgContext
 import org.utbot.framework.codegen.domain.models.CgClassFile
 import org.utbot.framework.codegen.domain.models.CgMethodTestSet
@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 abstract class AbstractCodeGenerator(params: CodeGeneratorParams) {
-    protected val logger = KotlinLogging.logger {}
+    protected val logger =  UtLogging.logger {}
 
     open var context: CgContext = with(params) {
         CgContext(

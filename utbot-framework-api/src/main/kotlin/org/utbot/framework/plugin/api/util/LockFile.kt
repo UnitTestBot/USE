@@ -6,12 +6,12 @@ import java.nio.file.StandardOpenOption
 import java.text.DateFormat
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.framework.utbotHomePath
 
 private val lockFilePath = "$utbotHomePath/utbot.lock"
 private var currentLock : OutputStream? = null
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 object LockFile {
     @Synchronized

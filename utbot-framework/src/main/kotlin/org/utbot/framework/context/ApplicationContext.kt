@@ -8,10 +8,10 @@ interface ApplicationContext {
     val typeReplacer: TypeReplacer
     val nonNullSpeculator: NonNullSpeculator
 
-    fun createConcreteExecutionContext(
-        fullClasspath: String,
-        classpathWithoutDependencies: String
-    ): ConcreteExecutionContext
+//    fun createConcreteExecutionContext(
+//        fullClasspath: String,
+//        classpathWithoutDependencies: String
+//    ): ConcreteExecutionContext
 
     fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator
 }

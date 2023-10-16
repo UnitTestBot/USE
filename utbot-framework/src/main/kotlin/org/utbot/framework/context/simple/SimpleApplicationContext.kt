@@ -4,7 +4,6 @@ import org.utbot.framework.codegen.generator.AbstractCodeGenerator
 import org.utbot.framework.codegen.generator.CodeGenerator
 import org.utbot.framework.codegen.generator.CodeGeneratorParams
 import org.utbot.framework.context.ApplicationContext
-import org.utbot.framework.context.ConcreteExecutionContext
 import org.utbot.framework.context.MockerContext
 import org.utbot.framework.context.NonNullSpeculator
 import org.utbot.framework.context.TypeReplacer
@@ -17,10 +16,10 @@ class SimpleApplicationContext(
     override val typeReplacer: TypeReplacer = SimpleTypeReplacer(),
     override val nonNullSpeculator: NonNullSpeculator = SimpleNonNullSpeculator()
 ) : ApplicationContext {
-    override fun createConcreteExecutionContext(
-        fullClasspath: String,
-        classpathWithoutDependencies: String
-    ): ConcreteExecutionContext = SimpleConcreteExecutionContext(fullClasspath)
+//    override fun createConcreteExecutionContext(
+//        fullClasspath: String,
+//        classpathWithoutDependencies: String
+//    ): ConcreteExecutionContext = SimpleConcreteExecutionContext(fullClasspath)
 
     override fun createCodeGenerator(params: CodeGeneratorParams): AbstractCodeGenerator =
         CodeGenerator(params)

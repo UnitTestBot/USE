@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.tree
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.domain.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.domain.context.CgContext
@@ -33,7 +33,7 @@ abstract class CgAbstractTestClassConstructor<T : TestClassModel>(val context: C
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
 
     companion object {
-        private val logger = KotlinLogging.logger {}
+        private val logger =  UtLogging.logger {}
     }
 
     init {

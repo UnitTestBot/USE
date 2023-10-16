@@ -1,13 +1,18 @@
 dependencies {
-    implementation(project(":utbot-framework"))
+    implementation(project(":utbot-framework")) {
+        exclude group:'org.soot-oss:soot', module:'soot'
+    }
+    implementation(group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion)
+    implementation(group: "com.jetbrains.rd", name: "rd-framework", version: rdVersion)
+    implementation(group: "com.jetbrains.rd", name: "rd-core", version: rdVersion)
 }
 
 jar {
     dependsOn classes
-    dependsOn configurations.runtimeClasspath
+    dependsOn configurations.compileClasspath
     archiveClassifier.set('')
     from {
-        sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+        sourceSets.main.output + configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     zip64 = true

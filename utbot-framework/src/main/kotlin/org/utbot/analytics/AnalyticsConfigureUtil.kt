@@ -1,10 +1,10 @@
 package org.utbot.analytics
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 object AnalyticsConfigureUtil {
     /**

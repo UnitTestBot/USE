@@ -1,1 +1,0 @@
-Anchor to have src/test/java folder committed to Git

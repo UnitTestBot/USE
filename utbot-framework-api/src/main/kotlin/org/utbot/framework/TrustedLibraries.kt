@@ -1,10 +1,10 @@
 package org.utbot.framework
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.PathUtil.toPath
 import java.io.IOException
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 private val defaultUserTrustedLibrariesPath: String = "${utbotHomePath}/trustedLibraries.txt"
 private const val userTrustedLibrariesKey: String = "utbot.settings.trusted.libraries.path"

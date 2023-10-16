@@ -7,7 +7,6 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.simple.SimpleApplicationContext
-import org.utbot.framework.context.simple.SimpleConcreteExecutionContext
 import org.utbot.framework.context.simple.SimpleMockerContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -17,7 +16,7 @@ import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.SootUtils.runSoot
-import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
+//import org.utbot.instrumentation.instrumentation.execution.UtExecutionInstrumentation
 import java.io.File
 import java.nio.file.Paths
 
@@ -52,7 +51,7 @@ object UnitTestBotLight {
             mockFrameworkInstalled = true,
             staticsMockingIsConfigured = true
         )),
-        concreteExecutionContext = SimpleConcreteExecutionContext(classpath),
+        /*concreteExecutionContext = SimpleConcreteExecutionContext(classpath),*/
         solverTimeoutInMillis = UtSettings.checkSolverTimeoutMillis
     )
 
@@ -85,7 +84,7 @@ object UnitTestBotLight {
                     mockFrameworkInstalled = true,
                     staticsMockingIsConfigured = true
                 )),
-                SimpleConcreteExecutionContext(classpath)
+                /*SimpleConcreteExecutionContext(classpath)*/
             ).addListener(stateListener).traverseAll()
         }
     }

@@ -1,7 +1,0 @@
-beautifulsoup4
-javalang
-numpy
-pandas
-requests
-scikit_learn
-torch

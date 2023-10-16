@@ -12,7 +12,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import mu.KLogger
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.*
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
@@ -24,7 +24,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
-import org.utbot.framework.UtSettings.warmupConcreteExecution
+//import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.context.simple.SimpleApplicationContext
 import org.utbot.framework.context.simple.SimpleMockerContext
@@ -40,8 +40,8 @@ import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toModel
 import org.utbot.framework.plugin.api.SpringSettings.*
 import org.utbot.framework.plugin.api.SpringTestType.*
-import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.instrumentation.warmup
+//import org.utbot.instrumentation.ConcreteExecutor
+//import org.utbot.instrumentation.warmup
 import org.utbot.taint.TaintConfigurationProvider
 import java.io.File
 import java.nio.file.Path
@@ -73,12 +73,12 @@ open class TestCaseGenerator(
         )
     ),
 ) {
-    private val logger: KLogger = KotlinLogging.logger {}
-    private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
-    private val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
-        fullClasspath = classpathForEngine,
-        classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
-    )
+    private val logger: KLogger =  UtLogging.logger {}
+    private val timeoutLogger: KLogger =  UtLogging.logger(logger.name + ".timeout")
+//    private val concreteExecutionContext = applicationContext.createConcreteExecutionContext(
+//        fullClasspath = classpathForEngine,
+//        classpathWithoutDependencies = buildDirs.joinToString(File.pathSeparator)
+//    )
 
     private val classpathForEngine: String
         get() = (buildDirs + listOfNotNull(classpath)).joinToString(File.pathSeparator)
@@ -99,31 +99,31 @@ open class TestCaseGenerator(
             }
 
             //warmup
-            if (warmupConcreteExecution) {
-                // force pool to create an appropriate executor
-                // TODO ensure that instrumented process that starts here is properly terminated
-                ConcreteExecutor(
-                    concreteExecutionContext.instrumentationFactory,
-                    classpathForEngine,
-                ).apply {
-                    warmup()
-                }
-            }
+//            if (warmupConcreteExecution) {
+//                // force pool to create an appropriate executor
+//                // TODO ensure that instrumented process that starts here is properly terminated
+//                ConcreteExecutor(
+//                    concreteExecutionContext.instrumentationFactory,
+//                    classpathForEngine,
+//                ).apply {
+//                    warmup()
+//                }
+//            }
         }
     }
 
-    fun minimizeExecutions(classUnderTestId: ClassId, executions: List<UtExecution>): List<UtExecution> =
-        when (UtSettings.testMinimizationStrategyType) {
-            TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
-            TestSelectionStrategyType.COVERAGE_STRATEGY ->
-                minimizeTestCase(
-                    concreteExecutionContext.transformExecutionsBeforeMinimization(
-                        executions,
-                        classUnderTestId
-                    ),
-                    executionToTestSuite = { it.result::class.java }
-                )
-        }
+    fun minimizeExecutions(classUnderTestId: ClassId, executions: List<UtExecution>): List<UtExecution> = executions
+//        when (UtSettings.testMinimizationStrategyType) {
+//            TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY -> executions
+//            TestSelectionStrategyType.COVERAGE_STRATEGY ->
+//                minimizeTestCase(
+//                    concreteExecutionContext.transformExecutionsBeforeMinimization(
+//                        executions,
+//                        classUnderTestId
+//                    ),
+//                    executionToTestSuite = { it.result::class.java }
+//                )
+//        }
 
     @Throws(CancellationException::class)
     fun generateAsync(
@@ -137,10 +137,10 @@ open class TestCaseGenerator(
         if (isCanceled())
             return@flow
 
-        val contextLoadingResult = loadConcreteExecutionContext()
-        emitAll(flowOf(*contextLoadingResult.utErrors.toTypedArray()))
-        if (!contextLoadingResult.contextLoaded)
-            return@flow
+//        val contextLoadingResult = loadConcreteExecutionContext()
+//        emitAll(flowOf(*contextLoadingResult.utErrors.toTypedArray()))
+//        if (!contextLoadingResult.contextLoaded)
+//            return@flow
 
         try {
             val engine = createSymbolicEngine(
@@ -161,136 +161,136 @@ open class TestCaseGenerator(
         }
     }
 
-    fun generate(
-        methods: List<ExecutableId>,
-        mockStrategy: MockStrategyApi,
-        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
-        methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
-        userTaintConfigurationProvider: TaintConfigurationProvider? = null,
-        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
-    ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
-        if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
-
-        val contextLoadingResult = loadConcreteExecutionContext()
-
-        val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
-            contextLoadingResult.utErrors.associateTo(mutableMapOf()) { it.description to 1 }
-        }
-
-        if (!contextLoadingResult.contextLoaded)
-            return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
-
-        val executionStartInMillis = System.currentTimeMillis()
-        val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
-
-        val currentUtContext = utContext
-
-        val method2controller = methods.associateWith { EngineController() }
-        val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
-
-        val conflictTriggers = ConflictTriggers()
-        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
-        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
-
-        runIgnoringCancellationException {
-            runBlockingWithCancellationPredicate(isCanceled) {
-                for ((method, controller) in method2controller) {
-                    controller.job = launch(currentUtContext) {
-                        if (!isActive) return@launch
-
-                        try {
-                            //yield one to
-                            yield()
-
-                            val engine: UtBotSymbolicEngine = createSymbolicEngine(
-                                controller,
-                                method,
-                                mockStrategy,
-                                chosenClassesToMockAlways,
-                                applicationContext,
-                                executionTimeEstimator,
-                                userTaintConfigurationProvider,
-                            )
-
-                            engineActions.map { engine.apply(it) }
-                            engineActions.clear()
-
-                            generate(engine)
-                                .catch {
-                                    logger.error(it) { "Error in flow" }
-                                }
-                                .collect {
-                                    when (it) {
-                                        is UtExecution -> {
-                                            if (it is UtSymbolicExecution &&
-                                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
-                                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
-                                            ) {
-                                                it.containsMocking = true
-                                            }
-                                            method2executions.getValue(method) += it
-                                        }
-                                        is UtError -> {
-                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
-                                            logger.error(it.error) { "UtError occurred" }
-                                        }
-                                    }
-                                }
-                        } catch (e: Exception) {
-                            logger.error(e) {"Error in engine"}
-                            throw e
-                        }
-                    }
-                    controller.paused = true
-                    conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
-                }
-
-                // All jobs are in the method2controller now (paused). execute them with timeout
-
-                GlobalScope.launch {
-                    logger.debug("test generator global scope lifecycle check started")
-                    while (isActive) {
-                        var activeCount = 0
-                        for ((method, controller) in method2controller) {
-                            if (!controller.job!!.isActive) continue
-                            activeCount++
-
-                            method2controller.values.forEach { it.paused = true }
-                            controller.paused = false
-
-                            logger.info { "Resuming method $method" }
-                            val startTime = System.currentTimeMillis()
-                            while (controller.job!!.isActive &&
-                                (System.currentTimeMillis() - startTime) < executionTimeEstimator.timeslotForOneToplevelMethodTraversalInMillis
-                            ) {
-                                updateLifecycle(
-                                    executionStartInMillis,
-                                    executionTimeEstimator,
-                                    method2controller.values,
-                                    this
-                                )
-                                yield()
-                            }
-                        }
-                        if (activeCount == 0) break
-                    }
-                    logger.debug("test generator global scope lifecycle check ended")
-                }
-            }
-        }
-
-        forceMockListener.detach(this, forceMockListener)
-        forceStaticMockListener.detach(this, forceStaticMockListener)
-
-        return@use methods.map { method ->
-            UtMethodTestSet(
-                method,
-                minimizeExecutions(method.classId, method2executions.getValue(method)),
-                jimpleBody(method),
-                method2errors.getValue(method)
-            )
-        }
-    }
+//    fun generate(
+//        methods: List<ExecutableId>,
+//        mockStrategy: MockStrategyApi,
+//        chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
+//        methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
+//        userTaintConfigurationProvider: TaintConfigurationProvider? = null,
+//        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
+//    ): List<UtMethodTestSet> = ConcreteExecutor.defaultPool.use { _ -> // TODO: think on appropriate way to close instrumented processes
+//        if (isCanceled()) return@use methods.map { UtMethodTestSet(it) }
+//
+//        val contextLoadingResult = loadConcreteExecutionContext()
+//
+//        val method2errors: Map<ExecutableId, MutableMap<String, Int>> = methods.associateWith {
+//            contextLoadingResult.utErrors.associateTo(mutableMapOf()) { it.description to 1 }
+//        }
+//
+//        if (!contextLoadingResult.contextLoaded)
+//            return@use methods.map { method -> UtMethodTestSet(method, errors = method2errors.getValue(method)) }
+//
+//        val executionStartInMillis = System.currentTimeMillis()
+//        val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
+//
+//        val currentUtContext = utContext
+//
+//        val method2controller = methods.associateWith { EngineController() }
+//        val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
+//
+//        val conflictTriggers = ConflictTriggers()
+//        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
+//        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
+//
+//        runIgnoringCancellationException {
+//            runBlockingWithCancellationPredicate(isCanceled) {
+//                for ((method, controller) in method2controller) {
+//                    controller.job = launch(currentUtContext) {
+//                        if (!isActive) return@launch
+//
+//                        try {
+//                            //yield one to
+//                            yield()
+//
+//                            val engine: UtBotSymbolicEngine = createSymbolicEngine(
+//                                controller,
+//                                method,
+//                                mockStrategy,
+//                                chosenClassesToMockAlways,
+//                                applicationContext,
+//                                executionTimeEstimator,
+//                                userTaintConfigurationProvider,
+//                            )
+//
+//                            engineActions.map { engine.apply(it) }
+//                            engineActions.clear()
+//
+//                            generate(engine)
+//                                .catch {
+//                                    logger.error(it) { "Error in flow" }
+//                                }
+//                                .collect {
+//                                    when (it) {
+//                                        is UtExecution -> {
+//                                            if (it is UtSymbolicExecution &&
+//                                                (conflictTriggers.triggered(Conflict.ForceMockHappened) ||
+//                                                        conflictTriggers.triggered(Conflict.ForceStaticMockHappened))
+//                                            ) {
+//                                                it.containsMocking = true
+//                                            }
+//                                            method2executions.getValue(method) += it
+//                                        }
+//                                        is UtError -> {
+//                                            method2errors.getValue(method).merge(it.description, 1, Int::plus)
+//                                            logger.error(it.error) { "UtError occurred" }
+//                                        }
+//                                    }
+//                                }
+//                        } catch (e: Exception) {
+//                            logger.error(e) {"Error in engine"}
+//                            throw e
+//                        }
+//                    }
+//                    controller.paused = true
+//                    conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+//                }
+//
+//                // All jobs are in the method2controller now (paused). execute them with timeout
+//
+//                GlobalScope.launch {
+//                    logger.debug("test generator global scope lifecycle check started")
+//                    while (isActive) {
+//                        var activeCount = 0
+//                        for ((method, controller) in method2controller) {
+//                            if (!controller.job!!.isActive) continue
+//                            activeCount++
+//
+//                            method2controller.values.forEach { it.paused = true }
+//                            controller.paused = false
+//
+//                            logger.info { "Resuming method $method" }
+//                            val startTime = System.currentTimeMillis()
+//                            while (controller.job!!.isActive &&
+//                                (System.currentTimeMillis() - startTime) < executionTimeEstimator.timeslotForOneToplevelMethodTraversalInMillis
+//                            ) {
+//                                updateLifecycle(
+//                                    executionStartInMillis,
+//                                    executionTimeEstimator,
+//                                    method2controller.values,
+//                                    this
+//                                )
+//                                yield()
+//                            }
+//                        }
+//                        if (activeCount == 0) break
+//                    }
+//                    logger.debug("test generator global scope lifecycle check ended")
+//                }
+//            }
+//        }
+//
+//        forceMockListener.detach(this, forceMockListener)
+//        forceStaticMockListener.detach(this, forceStaticMockListener)
+//
+//        return@use methods.map { method ->
+//            UtMethodTestSet(
+//                method,
+//                minimizeExecutions(method.classId, method2executions.getValue(method)),
+//                jimpleBody(method),
+//                method2errors.getValue(method)
+//            )
+//        }
+//    }
 
     private fun createSymbolicEngine(
         controller: EngineController,
@@ -310,9 +310,8 @@ open class TestCaseGenerator(
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             applicationContext = applicationContext,
-            concreteExecutionContext = concreteExecutionContext,
+//            concreteExecutionContext = concreteExecutionContext,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
-            userTaintConfigurationProvider = userTaintConfigurationProvider,
         )
     }
 
@@ -368,9 +367,9 @@ open class TestCaseGenerator(
         }
     }
 
-    private fun loadConcreteExecutionContext(): ConcreteContextLoadingResult {
-        // force pool to create an appropriate executor
-        val concreteExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
-        return concreteExecutionContext.loadContext(concreteExecutor)
-    }
+//    private fun loadConcreteExecutionContext(): ConcreteContextLoadingResult {
+//        // force pool to create an appropriate executor
+//        val concreteExecutor = ConcreteExecutor(concreteExecutionContext.instrumentationFactory, classpathForEngine)
+//        return concreteExecutionContext.loadContext(concreteExecutor)
+//    }
 }

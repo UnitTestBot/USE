@@ -7,10 +7,9 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.framework.plugin.api.ArtificialError
 import org.utbot.framework.plugin.api.OverflowDetectionError
-import org.utbot.framework.plugin.api.TaintAnalysisError
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
@@ -132,7 +131,6 @@ import org.utbot.framework.plugin.api.isAbstractType
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
-import org.utbot.summary.ast.declaredClassName
 import org.utbot.framework.util.sootMethodOrNull
 import org.utbot.taint.TaintContext
 import org.utbot.taint.model.*
@@ -231,7 +229,7 @@ import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 class Traverser(
     private val methodUnderTest: ExecutableId,
@@ -243,7 +241,6 @@ class Traverser(
     private val mocker: Mocker,
     private val typeReplacer: TypeReplacer,
     private val nonNullSpeculator: NonNullSpeculator,
-    private val taintContext: TaintContext,
 ) : UtContextInitializer() {
 
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
@@ -824,11 +821,6 @@ class Traverser(
         }
 
         rightPartWrappedAsMethodResults.forEach { methodResult ->
-            val taintAnalysisUpdate = if (UtSettings.useTaintAnalysis && rightValue is InvokeExpr) {
-                processTaintAnalysis(rightValue, methodResult)
-            } else {
-                SymbolicStateUpdate()
-            }
 
             when (methodResult.symbolicResult) {
 
@@ -837,7 +829,7 @@ class Traverser(
 
                     val nextState = createExceptionStateQueued(
                         methodResult.symbolicResult,
-                        methodResult.symbolicStateUpdate + taintAnalysisUpdate
+                        methodResult.symbolicStateUpdate
                     )
                     globalGraph.registerImplicitEdge(nextState.lastEdge!!)
                     offerState(nextState)
@@ -851,7 +843,7 @@ class Traverser(
                     offerState(
                         updateQueued(
                             globalGraph.succ(current),
-                            update + methodResult.symbolicStateUpdate + taintAnalysisUpdate
+                            update + methodResult.symbolicStateUpdate
                         )
                     )
                 }
@@ -2588,14 +2580,8 @@ class Traverser(
 
     private fun TraversalContext.invokeResult(invokeExpr: InvokeExpr): List<MethodResult> =
         environment.state.methodResult?.let { methodResult ->
-            val taintUpdate = if (UtSettings.useTaintAnalysis) {
-                processTaintAnalysis(invokeExpr, methodResult)
-            } else {
-                SymbolicStateUpdate()
-            }
-
             listOf(
-                methodResult.copy(symbolicStateUpdate = methodResult.symbolicStateUpdate + taintUpdate)
+                methodResult.copy(symbolicStateUpdate = methodResult.symbolicStateUpdate)
             )
         } ?: when (invokeExpr) {
             is JStaticInvokeExpr -> staticInvoke(invokeExpr)
@@ -2703,10 +2689,6 @@ class Traverser(
     private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
 
-        if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(invokeExpr.method.executableId, base = null, args = parameters, result = null))
-        }
-
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
         if (result != null) return result
@@ -2735,10 +2717,6 @@ class Traverser(
 
         val method = methodRef.resolve()
         val resolvedParameters = resolveParameters(parameters, method.parameterTypes)
-
-        if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, resolvedParameters, result = null))
-        }
 
         val invocation = Invocation(instance, method, resolvedParameters) {
             when (instance) {
@@ -2908,10 +2886,6 @@ class Traverser(
 
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
-
-        if (UtSettings.useTaintAnalysis) {
-            processTaintSink(SymbolicMethodData(method.executableId, instance, parameters, result = null))
-        }
 
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
 
@@ -3121,7 +3095,7 @@ class Traverser(
                     if (UtSettings.treatAbsentMethodsAsUnboundedValue) {
                         listOf(unboundedVariable("methodWithoutBodyResult", method = this))
                     } else {
-                        error("Cannot retrieve body for a $declaredClassName.$name method")
+                        error("Cannot retrieve body for a method")
                     }
                 }
             }
@@ -4183,142 +4157,5 @@ class Traverser(
 
     private fun pop(methodResultWithUpdates: MethodResult): ExecutionState {
         return environment.state.pop(methodResultWithUpdates)
-    }
-
-    // taint analysis
-
-    private fun TraversalContext.resolveMethodId(
-        invokeExpr: InvokeExpr,
-        methodResult: MethodResult
-    ): SymbolicMethodData {
-        val methodId = invokeExpr.method.executableId
-        // The method not in soot for some reasons.
-        // For example, it is synthetic and so it should not be processed in taint analysis.
-        val sootMethod = methodId.sootMethodOrNull ?: return SymbolicMethodData.constructInvalid(methodId)
-
-        val symbolicBase = invokeExpr.baseOrNull()?.let { resolve(it, sootMethod.declaringClass.type) }
-        val symbolicArgs = resolveParameters(invokeExpr.args, sootMethod.parameterTypes)
-        val symbolicResult = (methodResult.symbolicResult as? SymbolicSuccess)?.value
-
-        return SymbolicMethodData(methodId, symbolicBase, symbolicArgs, symbolicResult)
-    }
-
-    private fun TraversalContext.processTaintAnalysis(
-        invokeExpr: InvokeExpr,
-        methodResult: MethodResult
-    ): SymbolicStateUpdate {
-        var result = SymbolicStateUpdate()
-
-        val methodData = resolveMethodId(invokeExpr, methodResult)
-        result += processTaintSource(methodData)
-        result += processTaintCleaner(methodData)
-        result += processTaintPass(methodData)
-
-        return result
-    }
-
-    private fun processTaintSource(methodData: SymbolicMethodData): SymbolicStateUpdate {
-        val sourceConfigurations = taintContext.configuration.getSourcesBy(methodData.methodId)
-        val symbolicStateUpdates = sourceConfigurations.flatMap { source ->
-            val allAddresses = source.addTo.entities.mapNotNull { entity ->
-                methodData.choose(entity)?.addrOrNull
-            }
-            val condition = source.condition.toBoolExpr(this@Traverser, methodData)
-
-            allAddresses.map { addr ->
-                taintContext.markManager.setMarks(memory, addr, source.marks, condition)
-            }
-        }
-
-        return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
-    }
-
-    private fun processTaintCleaner(methodData: SymbolicMethodData): SymbolicStateUpdate {
-        val cleanerConfigurations = taintContext.configuration.getCleanersBy(methodData.methodId)
-        val symbolicStateUpdates = cleanerConfigurations.flatMap { cleaner ->
-            val allAddresses = cleaner.removeFrom.entities.mapNotNull { entity ->
-                methodData.choose(entity)?.addrOrNull
-            }
-            val condition = cleaner.condition.toBoolExpr(this@Traverser, methodData)
-
-            allAddresses.map { addr ->
-                taintContext.markManager.clearMarks(memory, addr, cleaner.marks, condition)
-            }
-        }
-
-        return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
-    }
-
-    private fun processTaintPass(methodData: SymbolicMethodData): SymbolicStateUpdate {
-        val passConfigurations = taintContext.configuration.getPassesBy(methodData.methodId)
-        val symbolicStateUpdates = passConfigurations.flatMap { pass ->
-            val getFromAddresses = pass.getFrom.entities.mapNotNull { entity ->
-                methodData.choose(entity)?.addrOrNull
-            }
-            val addToAddresses = pass.addTo.entities.mapNotNull { entity ->
-                methodData.choose(entity)?.addrOrNull
-            }
-            val condition = pass.condition.toBoolExpr(this@Traverser, methodData)
-
-            getFromAddresses.flatMap { fromAddr ->
-                addToAddresses.map { toAddr ->
-                    taintContext.markManager.passMarks(memory, fromAddr, toAddr, pass.marks, condition)
-                }
-            }
-        }
-
-        return symbolicStateUpdates.fold(SymbolicStateUpdate()) { acc, update -> acc + update }
-    }
-
-    private fun TraversalContext.processTaintSink(methodData: SymbolicMethodData) {
-        val sinkConfigurations = taintContext.configuration.getSinksBy(methodData.methodId)
-        sinkConfigurations.forEach { sink ->
-            val condition = sink.condition.toBoolExpr(this@Traverser, methodData)
-            sink.check.entities.forEach { entity ->
-                implicitlyThrowTaintError(methodData, entity, sink.marks, condition)
-            }
-        }
-    }
-
-    private fun TraversalContext.implicitlyThrowTaintError(
-        methodData: SymbolicMethodData,
-        entity: TaintEntity,
-        marks: TaintMarks,
-        condition: UtBoolExpression,
-    ) {
-        val symbolicEntity = methodData.choose(entity) ?: return
-        val entityAddr = symbolicEntity.addrOrNull ?: return
-
-        val methodName = methodData.methodId.simpleNameWithClass
-        val taintedVarType = symbolicEntity.type.toQuotedString()
-
-        when (marks) {
-            is TaintMarksAll -> {
-                val containsAnyMark = taintContext.markManager.containsAnyMark(memory, entityAddr)
-                implicitlyThrowException(
-                    TaintAnalysisError(methodName, taintedVarType, "tainted"),
-                    setOf(mkAnd(containsAnyMark, condition))
-                )
-            }
-            is TaintMarksSet -> {
-                if (UtSettings.throwTaintErrorForEachMarkSeparately) {
-                    marks.marks.forEach { mark ->
-                        val containsMark = taintContext.markManager.containsMark(memory, entityAddr, mark)
-                        implicitlyThrowException(
-                            TaintAnalysisError(methodName, taintedVarType, mark.name),
-                            setOf(mkAnd(containsMark, condition))
-                        )
-                    }
-                } else {
-                    val containsAnySpecifiedMark = marks.marks.map { mark ->
-                        taintContext.markManager.containsMark(memory, entityAddr, mark)
-                    }
-                    implicitlyThrowException(
-                        TaintAnalysisError(methodName, taintedVarType, "tainted"),
-                        setOf(mkAnd(mkOr(containsAnySpecifiedMark), condition))
-                    )
-                }
-            }
-        }
     }
 }

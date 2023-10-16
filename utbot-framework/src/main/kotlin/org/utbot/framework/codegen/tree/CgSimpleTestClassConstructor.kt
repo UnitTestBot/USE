@@ -19,7 +19,6 @@ import org.utbot.framework.codegen.domain.models.SimpleTestClassModel
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.humanReadableName
-import org.utbot.fuzzer.UtFuzzedExecution
 
 /**
  * This test class constructor is used for pure Java/Kotlin applications.
@@ -158,15 +157,6 @@ open class CgSimpleTestClassConstructor(context: CgContext): CgAbstractTestClass
      */
     private fun collectFuzzerTestsForParameterizedMode(testSet: CgMethodTestSet): List<CgTestMethod> {
         val testMethods = mutableListOf<CgTestMethod>()
-
-        testSet.executions
-            .filterIsInstance<UtFuzzedExecution>()
-            .withIndex()
-            .forEach { (index, execution) ->
-                withExecutionIdScope(index) {
-                    testMethods += methodConstructor.createTestMethod(testSet.executableId, execution)
-                }
-            }
 
         return testMethods
     }

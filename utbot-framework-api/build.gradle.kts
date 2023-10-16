@@ -12,7 +12,7 @@ dependencies {
     api(project(":utbot-rd"))
     implementation(group ="com.jetbrains.rd", name = "rd-framework", version = rdVersion)
     implementation(group ="com.jetbrains.rd", name = "rd-core", version = rdVersion)
-    implementation("org.unittestbot.soot:soot-utbot-fork:${sootVersion}") {
+    implementation("org.soot-oss:soot:${sootVersion}") {
         exclude(group="com.google.guava", module="guava")
     }
     implementation(group = "io.github.microutils", name = "kotlin-logging", version = kotlinLoggingVersion)

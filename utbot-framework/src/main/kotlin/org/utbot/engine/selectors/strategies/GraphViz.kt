@@ -1,6 +1,6 @@
 package org.utbot.engine.selectors.strategies
 
-import mu.KotlinLogging
+import org.utbot.framework.UtLogging
 import org.utbot.common.FileUtil.createNewFileWithParentDirectories
 import org.utbot.engine.state.CALL_DECISION_NUM
 import org.utbot.engine.state.Edge
@@ -20,7 +20,7 @@ import java.io.FileWriter
 import java.nio.file.Paths
 import org.utbot.common.FileUtil
 
-private val logger = KotlinLogging.logger {}
+private val logger =  UtLogging.logger {}
 
 
 class GraphViz(
