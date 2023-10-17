@@ -2,6 +2,7 @@ dependencies {
     implementation(project(":utbot-framework")) {
         exclude group:'org.soot-oss:soot', module:'soot'
     }
+    implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmtSolverZ3Version
     implementation(group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion)
     implementation(group: "com.jetbrains.rd", name: "rd-framework", version: rdVersion)
     implementation(group: "com.jetbrains.rd", name: "rd-core", version: rdVersion)
