@@ -1,5 +1,4 @@
 import java.text.SimpleDateFormat
-import org.gradle.api.JavaVersion.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 group = "org.utbot"
