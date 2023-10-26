@@ -16,6 +16,8 @@ plugins {
     `java-library`
     kotlin("jvm") version "1.8.0"
     `maven-publish`
+    id("org.jetbrains.dokka") version "1.7.20"
+    signing
 }
 
 allprojects {
@@ -23,6 +25,8 @@ allprojects {
     apply {
         plugin("maven-publish")
         plugin("kotlin")
+        plugin("org.jetbrains.dokka")
+        plugin("signing")
     }
 
     tasks {
@@ -148,6 +152,7 @@ allprojects {
         )
         implementation(group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version = kotlinVersion)
         implementation(group = "org.jetbrains.kotlin", name = "kotlin-reflect", version = kotlinVersion)
+        runtimeOnly(group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version = "1.7.20")
 
         testImplementation("org.junit.jupiter:junit-jupiter") {
             version {
@@ -160,38 +165,25 @@ allprojects {
 subprojects {
     group = rootProject.group
     version = rootProject.version
-
-    publishing {
-        publications {
-            create<MavenPublication>("jar") {
-                from(components["java"])
-                groupId = "org.utbot"
-                artifactId = project.name
-            }
-        }
-    }
 }
+
+tasks.dokkaHtmlMultiModule {
+    removeChildTasks(
+        listOf(
+            project(":utbot-light"),
+            project(":utbot-rd")
+        )
+    )
+}
+
+tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+    dependsOn(tasks.dokkaHtmlMultimodule)
+    from("$buildDir/dokka/htmlMultiModule")
+}
+
 
 dependencies {
     implementation(group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = kotlinVersion)
     implementation(group = "org.jetbrains.kotlin", name = "kotlin-allopen", version = kotlinVersion)
-}
-
-configure(
-    listOf(
-        project(":utbot-light")
-    )
-) {
-    publishing {
-        repositories {
-            maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/UnitTestBot/USE")
-                credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
-                }
-            }
-        }
-    }
 }
