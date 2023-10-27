@@ -47,10 +47,10 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 7.4.2
-          arguments: :utbot-light:build -x test
+          arguments: :use:build -x test
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: utbot-light-${{ env.VERSION }}
-          path: utbot-light/build/libs/*
+          name: use-${{ env.VERSION }}
+          path: use/build/libs/*

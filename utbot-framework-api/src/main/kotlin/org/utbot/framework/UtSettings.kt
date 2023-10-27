@@ -577,7 +577,7 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
 
     // endregion
 
-    // region UTBot light related options
+    // region UnitTestBot symbolic execution (USE) machine related options
     // Changes to improve symbolic engine for light version
 
     var disableUnsatChecking by getBooleanProperty(false)

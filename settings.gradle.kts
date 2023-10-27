@@ -29,5 +29,5 @@ include("utbot-framework")
 include("utbot-framework-api")
 include("utbot-api")
 include("utbot-rd")
-include("utbot-light")
+include("use")
 

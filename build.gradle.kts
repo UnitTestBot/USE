@@ -179,18 +179,19 @@ dependencies {
 
 configure(
     listOf(
-        project(":utbot-light")
+        project(":use")
     )
 ) {
     publishing {
         repositories {
             maven {
-                name = "GitHubPackages"
-                url = uri("https://maven.pkg.github.com/UnitTestBot/USE")
+                name = "USE"
+                url = uri("http://:8081/repository/USE")
                 credentials {
-                    username = System.getenv("GITHUB_ACTOR")
-                    password = System.getenv("GITHUB_TOKEN")
+                    username = ""
+                    password = ""
                 }
+                isAllowInsecureProtocol = true
             }
         }
     }
