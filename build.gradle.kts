@@ -1,7 +1,7 @@
 import java.text.SimpleDateFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-group = "org.utbot"
+val group = "org.utbot"
 
 val kotlinVersion: String by project
 val semVer: String? by project
@@ -9,6 +9,10 @@ val coroutinesVersion: String by project
 val collectionsVersion: String by project
 val junit5Version: String by project
 val dateBasedVersion: String = SimpleDateFormat("YYYY.MM").format(System.currentTimeMillis()) // CI proceeds the same way
+val kotlinLoggingVersion: String by project
+val junit4Version: String by project
+val javasmtSolverZ3Version: String by project
+val rdVersion: String by project
 
 version = semVer ?: "$dateBasedVersion"
 
@@ -16,6 +20,8 @@ plugins {
     `java-library`
     kotlin("jvm") version "1.8.0"
     `maven-publish`
+    id("org.jetbrains.dokka") version "1.7.20"
+    signing
 }
 
 allprojects {
@@ -23,6 +29,8 @@ allprojects {
     apply {
         plugin("maven-publish")
         plugin("kotlin")
+        plugin("org.jetbrains.dokka")
+        plugin("signing")
     }
 
     tasks {
@@ -148,6 +156,7 @@ allprojects {
         )
         implementation(group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version = kotlinVersion)
         implementation(group = "org.jetbrains.kotlin", name = "kotlin-reflect", version = kotlinVersion)
+        runtimeOnly(group = "org.jetbrains.dokka", name = "dokka-gradle-plugin", version = "1.7.20")
 
         testImplementation("org.junit.jupiter:junit-jupiter") {
             version {
@@ -157,42 +166,137 @@ allprojects {
     }
 }
 
-subprojects {
-    group = rootProject.group
-    version = rootProject.version
 
-    publishing {
-        publications {
-            create<MavenPublication>("jar") {
-                from(components["java"])
-                groupId = "org.utbot"
-                artifactId = project.name
+tasks.dokkaHtmlMultiModule {
+    removeChildTasks(
+        listOf(project(":utbot-rd"))
+    )
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+    dependsOn(tasks.dokkaHtmlMultimodule)
+    from("$buildDir/dokka/htmlMultiModule")
+}
+
+tasks.kotlinSourcesJar {
+    rootProject.childProjects.values.map { project -> project.sourceSets.main.get().allSource }.forEach { sourceDirectorySet ->
+        from(
+            sourceDirectorySet
+        )
+    }
+}
+
+tasks.build {
+    dependsOn(javadocJar)
+    dependsOn(tasks.kotlinSourcesJar)
+}
+
+dependencies {
+
+    implementation(project(":utbot-framework")) {
+        exclude(group = "org.soot-oss:soot", module = "soot")
+    }
+
+    implementation(group= "org.sosy-lab", name= "javasmt-solver-z3", version= javasmtSolverZ3Version)
+    implementation(group= "io.github.microutils", name= "kotlin-logging", version= kotlinLoggingVersion)
+    implementation(group= "com.jetbrains.rd", name= "rd-framework", version= rdVersion)
+    implementation(group= "com.jetbrains.rd", name= "rd-core", version= rdVersion)
+
+    runtimeOnly(group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = kotlinVersion)
+    runtimeOnly(group = "org.jetbrains.kotlin", name = "kotlin-allopen", version = kotlinVersion)
+}
+
+fun MavenPublication.addPom() {
+    pom {
+        packaging = "jar"
+        name.set(group)
+        description.set("Symbolic Execution Analysis")
+        issueManagement {
+            url.set("https://github.com/UnitTestBot/USE/issues")
+        }
+        scm {
+            connection.set("scm:git:https://github.com/UnitTestBot/USE.git")
+            developerConnection.set("scm:git:https://github.com/UnitTestBot/USE.git")
+            url.set("https://www.utbot.org")
+        }
+        url.set("https://www.utbot.org")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+            }
+        }
+        developers {
+            developer {
+                id.set("UnitTestBot")
+                name.set("UnitTestBot Team")
             }
         }
     }
 }
 
-dependencies {
-    implementation(group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = kotlinVersion)
-    implementation(group = "org.jetbrains.kotlin", name = "kotlin-allopen", version = kotlinVersion)
+fun MavenPublication.signPublication(project: Project) = with(project) {
+    signing {
+        val gpgKey: String? by project
+        val gpgPassphrase: String? by project
+        val gpgKeyValue = gpgKey?.removeSurrounding("\"")
+        val gpgPasswordValue = gpgPassphrase
+
+        if (gpgKeyValue != null && gpgPasswordValue != null) {
+            useInMemoryPgpKeys(gpgKeyValue, gpgPasswordValue)
+            sign(this@signPublication)
+        }
+    }
 }
 
-configure(
-    listOf(
-        project(":use")
-    )
-) {
-    publishing {
-        repositories {
-            maven {
-                name = "USE"
-                url = uri("http://:8081/repository/USE")
-                credentials {
-                    username = ""
-                    password = ""
-                }
-                isAllowInsecureProtocol = true
+tasks.jar {
+    dependsOn.addAll(listOf("classes", sourceSets.main.get().compileClasspath))
+    manifest {
+        attributes(
+            mapOf(
+                "Implementation-Title" to project.name,
+                "Implementation-Version" to project.version
+            )
+        )
+    }
+
+    val contents = sourceSets["main"].output + sourceSets.main.get().compileClasspath.map {
+        if (it.isDirectory) it else zipTree(it)
+    }
+
+    from(contents)
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    isZip64 = true
+}
+
+
+
+publishing {
+    repositories {
+        maven {
+            name = "USE"
+            url = uri("/repository/USE")
+            credentials {
+                username = ""
+                password = ""
             }
+
+            isAllowInsecureProtocol = true
+        }
+    }
+
+    publications {
+        create<MavenPublication>("jar") {
+            from(components["kotlin"])
+            groupId = group
+            artifactId = project.name
+            artifact(javadocJar)
+            artifact(tasks.kotlinSourcesJar)
+            addPom()
+            signPublication(project)
         }
     }
 }

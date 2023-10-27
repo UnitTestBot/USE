@@ -22,12 +22,11 @@ pluginManagement {
     }
 }
 
-rootProject.name = "utbot"
+rootProject.name = "use"
 
 include("utbot-core")
 include("utbot-framework")
 include("utbot-framework-api")
 include("utbot-api")
 include("utbot-rd")
-include("use")
 
