@@ -175,7 +175,7 @@ tasks.dokkaHtmlMultiModule {
 
 val javadocJar = tasks.register<Jar>("javadocJar") {
     archiveClassifier.set("javadoc")
-    dependsOn(tasks.dokkaHtmlMultimodule)
+    dependsOn(tasks.dokkaHtmlMultiModule)
     from("$buildDir/dokka/htmlMultiModule")
 }
 

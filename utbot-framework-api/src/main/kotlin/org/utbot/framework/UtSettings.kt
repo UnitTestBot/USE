@@ -88,26 +88,6 @@ object UtSettings : AbstractSettings(logger, defaultKeyForSettingsPath, defaultS
     var saveRemainingStatesForConcreteExecution by getBooleanProperty(true)
 
     /**
-     * Use debug visualization.
-     *
-     * Set it to true if debug visualization is needed.
-     */
-    var useDebugVisualization by getBooleanProperty(false)
-
-    /**
-     * Set the value to true if you want to automatically copy the path of the
-     * file with the visualization to the system clipboard.
-     *
-     * False by default.
-     */
-    val copyVisualizationPathToClipboard get() = useDebugVisualization
-
-    /**
-     * Set the value to true to show library classes' graphs in visualization.
-     */
-    val showLibraryClassesInVisualization by getBooleanProperty(false)
-
-    /**
      * Use simplification of UtExpressions.
      *
      * Set it to false to disable expression simplification.

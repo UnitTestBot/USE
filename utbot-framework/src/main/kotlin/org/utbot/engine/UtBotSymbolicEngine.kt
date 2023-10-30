@@ -7,14 +7,12 @@ import org.utbot.framework.UtLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
-import org.utbot.api.exception.UtMockAssumptionViolatedException
 import org.utbot.common.debug
 import org.utbot.common.measureTime
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.*
 import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
-import org.utbot.engine.selectors.strategies.GraphViz
 import org.utbot.engine.state.ExecutionStackElement
 import org.utbot.engine.state.ExecutionState
 import org.utbot.engine.state.StateLabel
@@ -31,7 +29,6 @@ import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
-import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.context.ApplicationContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
@@ -41,8 +38,6 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import soot.jimple.Stmt
-import soot.tagkit.ParamNamesTag
-import java.lang.reflect.Method
 import java.util.function.Consumer
 import kotlin.system.measureTimeMillis
 
@@ -215,8 +210,6 @@ class UtBotSymbolicEngine(
     private fun traverseImpl(): Flow<UtResult> = flow {
 
         require(trackableResources.isEmpty())
-
-        if (useDebugVisualization) GraphViz(globalGraph, pathSelector)
 
         val initStmt = graph.head
         val initState = ExecutionState(
