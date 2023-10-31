@@ -194,7 +194,7 @@ tasks.build {
 
 dependencies {
 
-    implementation(project(":utbot-framework")) {
+    compileOnly(project(":utbot-framework")) {
         exclude(group = "org.soot-oss:soot", module = "soot")
     }
 
@@ -238,15 +238,7 @@ fun MavenPublication.addPom() {
 
 fun MavenPublication.signPublication(project: Project) = with(project) {
     signing {
-        val gpgKey: String? by project
-        val gpgPassphrase: String? by project
-        val gpgKeyValue = gpgKey?.removeSurrounding("\"")
-        val gpgPasswordValue = gpgPassphrase
-
-        if (gpgKeyValue != null && gpgPasswordValue != null) {
-            useInMemoryPgpKeys(gpgKeyValue, gpgPasswordValue)
-            sign(this@signPublication)
-        }
+        sign(this@signPublication)
     }
 }
 
@@ -272,16 +264,14 @@ tasks.jar {
     isZip64 = true
 }
 
-
-
 publishing {
     repositories {
         maven {
             name = "USE"
-            url = uri("/repository/USE")
+            url = uri(project.properties.get("repoUrl") as String)
             credentials {
-                username = ""
-                password = ""
+                username = project.properties.get("mavenUser") as String?
+                password = project.properties.get("mavenPassword") as String?
             }
 
             isAllowInsecureProtocol = true
